@@ -42,6 +42,8 @@ class GameState:
 def InitializeValueDict():
     # TODO: Please finish this and the function GetStandValue
     ValueDict = {}
+    state = GameState(4,-1,2,True,False)
+    ValueDict[state] = 1
     return ValueDict
 
 def PerformValueIteration( ValueDict, p):
@@ -63,11 +65,11 @@ def IsPolicySame( OldValueDict, NewValueDict):
 
 def GetStandValue(state):
     # handle ace
+    # First convert the state to the form where only the total, ace presence and freshness matters
     if state.OppCard == 11:
         return 1
     else:
         return 0
-
 
 def PerformValueIterationHard(ValueDict, state, p):
     ActionList = ["Hit","Stand","Double","Split"]
@@ -89,16 +91,17 @@ def PerformValueIterationPair(ValueDict, state, p):
     # TODO: Handle Ace pair
     ActionList = ["Hit","Stand","Double","Split"]
 
+    state_hard = ConvertPairToHard(state)
     # for action Hit
-    HitValue = CalculateHitValue(ValueDict, state, p)
+    HitValue = CalculateHitValue(ValueDict, state_hard, p)
     
     # for action Stand
-    StandValue = GetStandValue(state)
+    StandValue = GetStandValue(state_hard)
 
     # for action Double
     DoubleValue = 0
     if state.FreshHand:
-        DoubleValue = CalculateDoubleValue(ValueDict, state, p)
+        DoubleValue = CalculateDoubleValue(ValueDict, state_hard, p)
     
     # for action Split (TODO: Handle ace pair)
     SplitValue = CalculateSplitValue(ValueDict, state, p)

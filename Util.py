@@ -28,7 +28,7 @@ def CalculateDoubleValue(ValueDict, state, p):
     
     DoubleValue = 0
     for card in cards:
-        NewState = GameState(state.FirstCard + card, -1, state.OppCard, True)
+        NewState = GameState(state.FirstCard + card, -1, state.OppCard, True, state.AcePresent)
         DoubleValue += 2 * GetStandValue(NewState) * np
     # to handle face cards
     NewState = GameState(state.FirstCard+10, -1, state.OppCard, False, state.AcePresent)
@@ -46,16 +46,22 @@ def CalculateSplitValue(ValueDict, state, p):
     SplitValue = 0
     for card in cards:
         if card != self.FirstCard:
-            NewState = GameState(state.FirstCard + card, -1, state.OppCard, True)
+            NewState = GameState(2 * state.FirstCard + card, -1, state.OppCard, False)
             SplitValue += 2 * ValueDict[NewState] * np
         else:
-            NewState = GameState(state.FirstCard, state.FirstCard, state.OppCard, False)
+            NewState = GameState(state.FirstCard, state.FirstCard, state.OppCard, True, state.AcePresent)
             SplitValue += 2 * ValueDict[NewState] * np
+    
     # to handle face cards
-    NewState = GameState(state.FirstCard+10, -1, state.OppCard, False, state.AcePresent)
+    NewState = GameState(2 * state.FirstCard + 10, -1, state.OppCard, False, state.AcePresent)
     SplitValue += 2 * ValueDict[NewState] * p
     # to handle ace
-    NewState = GameState(state.FirstCard+1, -1, state.OppCard, False, True)
+    NewState = GameState(2 * state.FirstCard + 1, -1, state.OppCard, False, True)
     SplitValue += 2 * ValueDict[NewState] * np
 
     return SplitValue
+
+def ConvertPairToHard(state):
+    state.FirstCard += state.SecondCard
+    state.SecondCard = -1
+    state.FreshHand = False
