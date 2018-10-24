@@ -29,7 +29,7 @@ class GameState:
                                     other.HandType)
 
     def printme(self):
-        print("State (Type: %s, Value: %d, OppCard: %d)" % (self.HandType, self.Value, self.OppCard))
+        print("State (Type: %s, Value: %d, OppCard: %d) : " % (self.HandType, self.Value, self.OppCard), end='')
 
 
 # maps states to float values
@@ -37,43 +37,48 @@ def InitializeValueDict():
     ValueDict = {}
     StateSet = []
     for summ in range(2,22):
-        for opp in range(2,12):
+        for opp in range(1,11):
             StateSet.append(GameState("HardFresh", summ, opp))
             StateSet.append(GameState("HardStaleAce", summ, opp))
             StateSet.append(GameState("HardStale", summ, opp))
-    for summ in range(2,10):
-        for opp in range(2,12):
+    for summ in range(2,11):
+        for opp in range(1,11):
             StateSet.append(GameState("AceFresh", summ, opp))
-    for summ in range(2,12):
-        for opp in range(2,12):
+    for summ in range(2,11):
+        for opp in range(1,11):
             StateSet.append(GameState("Pair", summ, opp))
     for state in StateSet:
         ValueDict[state] = 0
     return ValueDict
 
 
-def PerformValueIteration( ValueDict, p):
-    print("Iteration 1")
+def PerformValueIteration( ValueActionDict, ValueDict, p):
     for state in ValueDict.keys():
         if state.HandType == "HardFresh":
-            PerformValueIterationHardFresh(ValueDict, state, p)
+            PerformValueIterationHardFresh(ValueActionDict, ValueDict, state, p)
         elif state.HandType == "HardStale":
-            PerformValueIterationHardStale(ValueDict, state, p)
+            PerformValueIterationHardStale(ValueActionDict, ValueDict, state, p)
         elif state.HandType == "Pair":
-            PerformValueIterationPair(ValueDict, state, p)
+            PerformValueIterationPair(ValueActionDict, ValueDict, state, p)
         elif state.HandType == "AceFresh":
-            PerformValueIterationAceFresh(ValueDict, state, p)
+            PerformValueIterationAceFresh(ValueActionDict, ValueDict, state, p)
         else:
-            PerformValueIterationHardStaleAce(ValueDict, state, p)
+            PerformValueIterationHardStaleAce(ValueActionDict, ValueDict, state, p)
 
 def IsPolicySame( OldValueDict, NewValueDict):
     epsilon = 0.00001
     for state in OldValueDict:
-        if (OldValueDict[state] - NewValueDict[state]) > epsilon:
+        if abs(OldValueDict[state] - NewValueDict[state]) > epsilon:
+            print("Returning false")
             return False
     return True
 
-def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards):
+def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh):
+    if acefresh  and (MyHandValue==11):
+        if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11):
+            return 1
+        else:
+            return 2.5
     if WeHaveAce:
         if MyHandValue+10 <= 21:
             MyHandValue = MyHandValue + 10
@@ -93,44 +98,53 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
     else:
         return 1
 
-
-def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1): # both values count aces as 1
+def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1, acefresh = False): # both values count aces as 1
     # base case - dealer stands
-    if (DealerHandValue, DealerHasAce) in MemoizationDict:
-        return MemoizationDict[(DealerHandValue, DealerHasAce)]
 
     if DealerHasAce:
         if (DealerHandValue+10>=17):
-            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards)
+            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
     else:
         if (DealerHandValue>=17):
-            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards)
+            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
+
+    if (MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh) in MemoizationDict:
+        return MemoizationDict[(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)]
 
     #deal more (hit)
     np = (1-p)/9.0
     TotalReward = 0
-    for DealerCard in range(1,10): # no ace
-        TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + DealerCard, DealerHasAce, NumDealerCards = NumDealerCards + 1)
-    TotalReward += p * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 10, DealerHasAce, NumDealerCards = NumDealerCards + 1)
+    for DealerCard in range(2,10): # no ace
+        TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + DealerCard, DealerHasAce, NumDealerCards = NumDealerCards + 1, acefresh = acefresh)
+    TotalReward += p * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 10, DealerHasAce, NumDealerCards = NumDealerCards + 1, acefresh = acefresh)
     # Dealer Ace
-    TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 1, True, NumDealerCards = NumDealerCards + 1)
+    TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 1, True, NumDealerCards = NumDealerCards + 1, acefresh = acefresh)
 
-    MemoizationDict[(DealerHandValue, DealerHasAce)] = TotalReward
+    MemoizationDict[(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)] = TotalReward
     return TotalReward
 
 def GetStandValue(state, p):
     # handle ace
     # First convert the state to the form where only the total, ace presence and freshness matters
+    
     if state.HandType == "HardStaleAce":
-        if state.OppCard == 11:
-            return GetStandValueHardStale(p, state.Value, True, state.OppCard, True,)
+        if state.OppCard == 1:
+            ret = GetStandValueHardStale(p, state.Value, True, state.OppCard, True)
         else:
-            return GetStandValueHardStale(p, state.Value, True, state.OppCard, False)
+            ret = GetStandValueHardStale(p, state.Value, True, state.OppCard, False)
+    elif state.HandType == "AceFresh":
+        if state.OppCard == 1:
+            ret = GetStandValueHardStale(p, state.Value+1, True, state.OppCard, True, acefresh = True)
+        else:
+            ret = GetStandValueHardStale(p, state.Value+1, True, state.OppCard, False, acefresh = True)
     else:
-        if state.OppCard == 11:
-            return GetStandValueHardStale(p, state.Value, False, state.OppCard, True)
+        if state.OppCard == 1:
+            ret = GetStandValueHardStale(p, state.Value, False, state.OppCard, True)
         else:
-            return GetStandValueHardStale(p, state.Value, False, state.OppCard, False)
+            ret = GetStandValueHardStale(p, state.Value, False, state.OppCard, False)
+
+    # print("Returning ", ret)
+    return ret
 
 def ReferenceValueDict(ValueDict, state):
     if state.Value > 21:
@@ -156,14 +170,13 @@ def ReferenceValueDict(ValueDict, state):
 
 
 
-def PerformValueIterationHardFresh(ValueDict, state, p):
+def PerformValueIterationHardFresh(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
-    print("HardFresh")
-    state.printme()
+    # print("HardFresh")
+    # state.printme()
 
-    t1 = time.time()
     # for action Hit    
     HitValue = 0
     for card in cards:
@@ -175,20 +188,14 @@ def PerformValueIterationHardFresh(ValueDict, state, p):
     # to handle ace
     NewState = GameState("HardStaleAce", state.Value + 1, state.OppCard)
     HitValue += ReferenceValueDict(ValueDict, NewState) * np
-    t2 = time.time()
-    print("Hit time: ", t2-t1)
-
+    
 
     # for action Stand
-    t1 = time.time()
     state_temp = GameState("HardStale", state.Value, state.OppCard)
     StandValue = GetStandValue(state_temp, p)
-    t2 = time.time()
-    print("Hit time: ", t2-t1)
     
 
     # for action Double
-    t1 = time.time()
     DoubleValue = 0
     for card in cards:
         NewState = GameState("HardStale", state.Value + card, state.OppCard)
@@ -199,17 +206,21 @@ def PerformValueIterationHardFresh(ValueDict, state, p):
     # to handle ace
     NewState = GameState("HardStaleAce", state.Value + 1, state.OppCard)
     DoubleValue += 2 * GetStandValue(NewState, p) * np
-    t2 = time.time()
-    print("Hit time: ", t2-t1)
     
     ValueDict[state] = max(HitValue, StandValue, DoubleValue)
+    if ValueDict[state] == HitValue:
+        ValueActionDict[state] = "Hit"
+    elif ValueDict[state] == StandValue:
+        ValueActionDict[state] = "Stand"
+    else:
+        ValueActionDict[state] = "Double"
 
-def PerformValueIterationHardStale(ValueDict, state, p):
+def PerformValueIterationHardStale(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
-    print("HardStale")
-    state.printme()
+    # print("HardStale")
+    # state.printme()
 
     # for action Hit    
     HitValue = 0
@@ -229,14 +240,18 @@ def PerformValueIterationHardStale(ValueDict, state, p):
     StandValue = GetStandValue(state, p)
     
     ValueDict[state] = max(HitValue, StandValue)
+    if ValueDict[state] == HitValue:
+        ValueActionDict[state] = "Hit"
+    elif ValueDict[state] == StandValue:
+        ValueActionDict[state] = "Stand"
 
-def PerformValueIterationPair(ValueDict, state, p):
+def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
     # TODO: Handle Ace pair
     ActionList = ["Hit","Stand","Double","Split"]
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
-    print("Pair")
-    state.printme()
+    # print("Pair")
+    # state.printme()
 
     if(state.Value != 1):
         
@@ -249,7 +264,7 @@ def PerformValueIterationPair(ValueDict, state, p):
         NewState = GameState("HardStale", 2 * state.Value + 10, state.OppCard)
         HitValue += ReferenceValueDict(ValueDict, NewState) * p
         # to handle ace
-        NewState = GameState("HardStaleAce", 2 * state.Value + card, state.OppCard)
+        NewState = GameState("HardStaleAce", 2 * state.Value + 1, state.OppCard)
         HitValue += ReferenceValueDict(ValueDict, NewState) * np
         
         
@@ -288,6 +303,15 @@ def PerformValueIterationPair(ValueDict, state, p):
         SplitValue += 2 * ReferenceValueDict(ValueDict, NewState) * np
 
         ValueDict[state] = max(HitValue, StandValue, DoubleValue, SplitValue)
+        if ValueDict[state] == HitValue:
+            ValueActionDict[state] = "Hit"
+        elif ValueDict[state] == StandValue:
+            ValueActionDict[state] = "Stand"
+        elif ValueDict[state] == DoubleValue:
+            ValueActionDict[state] = "Double"
+        else:
+            ValueActionDict[state] = "Split"
+
     else:
         
         # for action Hit
@@ -299,7 +323,7 @@ def PerformValueIterationPair(ValueDict, state, p):
         NewState = GameState("HardStaleAce", 2 * state.Value + 10, state.OppCard)
         HitValue += ReferenceValueDict(ValueDict, NewState) * p
         # to handle ace
-        NewState = GameState("HardStaleAce", 2 * state.Value + card, state.OppCard)
+        NewState = GameState("HardStaleAce", 2 * state.Value + 1, state.OppCard)
         HitValue += ReferenceValueDict(ValueDict, NewState) * np
         
         
@@ -336,13 +360,21 @@ def PerformValueIterationPair(ValueDict, state, p):
 
         
         ValueDict[state] = max(HitValue, StandValue, DoubleValue, SplitValue)
+        if ValueDict[state] == HitValue:
+            ValueActionDict[state] = "Hit"
+        elif ValueDict[state] == StandValue:
+            ValueActionDict[state] = "Stand"
+        elif ValueDict[state] == DoubleValue:
+            ValueActionDict[state] = "Double"
+        else:
+            ValueActionDict[state] = "Split"
 
-def PerformValueIterationAceFresh(ValueDict, state, p):
+def PerformValueIterationAceFresh(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
-    print("AceFresh")
-    state.printme()
+    # print("AceFresh")
+    # state.printme()
 
     # for action Hit    
     HitValue = 0
@@ -373,15 +405,20 @@ def PerformValueIterationAceFresh(ValueDict, state, p):
     NewState = GameState("HardStaleAce", 1 + state.Value + 1, state.OppCard)
     DoubleValue += 2 * GetStandValue(NewState, p) * np
 
-    
     ValueDict[state] = max(HitValue, StandValue, DoubleValue)
+    if ValueDict[state] == HitValue:
+        ValueActionDict[state] = "Hit"
+    elif ValueDict[state] == StandValue:
+        ValueActionDict[state] = "Stand"
+    elif ValueDict[state] == DoubleValue:
+        ValueActionDict[state] = "Double"
 
-def PerformValueIterationHardStaleAce(ValueDict, state, p):
+def PerformValueIterationHardStaleAce(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
-    print("HardStaleAce")
-    state.printme()
+    # print("HardStaleAce")
+    # state.printme()
 
     # for action Hit    
     HitValue = 0
@@ -400,14 +437,52 @@ def PerformValueIterationHardStaleAce(ValueDict, state, p):
     StandValue = GetStandValue(state, p)
 
     ValueDict[state] = max(HitValue, StandValue)
+    if ValueDict[state] == HitValue:
+        ValueActionDict[state] = "Hit"
+    elif ValueDict[state] == StandValue:
+        ValueActionDict[state] = "Stand"
+
 if __name__ == '__main__':
     MemoizationDict = {}
     ValueDict = InitializeValueDict()
+    ValueActionDict = InitializeValueDict()
     p = 4/13
+    iteration = 0
     while True:
         NewValueDict = ValueDict.copy()
-        PerformValueIteration(NewValueDict, p)
-        break
+        NewValueActionDict = ValueActionDict.copy()
+        print("Iteration ", iteration)
+        iteration += 1
+        PerformValueIteration(ValueActionDict, NewValueDict, p)
+        # print(NewValueDict.values())
+        # print(ValueDict.values())
         if IsPolicySame(ValueDict, NewValueDict):
             break
         ValueDict = NewValueDict
+        ValueActionDict = NewValueActionDict
+    
+    for summ in range(5,19):
+        for opp in range(1,11):
+            state = GameState("HardFresh", summ, opp)
+            print(ValueActionDict[state]," ",end="")
+        print("\n")
+    print("\n\n")
+    for summ in range(2,11):
+        for opp in range(1,11):
+            state = GameState("AceFresh", summ, opp)
+            print(ValueActionDict[state]," ",end="")
+        print("\n")
+    print("\n\n")
+    for summ in range(2,11):
+        for opp in range(1,11):
+            state = GameState("Pair", summ, opp)
+            print(ValueActionDict[state]," ",end="")
+        print("\n")
+    print("\n\n")
+    # for state in StateSet:
+    #     ValueDict[state] = 0
+
+    # for state in ValueDict:
+    #     state.printme()
+    #     print(ValueActionDict[state])
+    # print("MemoizationDict\n",MemoizationDict.values())
