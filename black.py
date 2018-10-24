@@ -74,11 +74,34 @@ def IsPolicySame( OldValueDict, NewValueDict):
     return True
 
 def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh):
+    # if acefresh  and (MyHandValue==11):
+    #     if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11):
+    #         return 1
+    #     else:
+    #         return 2.5
+    # if WeHaveAce:
+    #     if MyHandValue+10 <= 21:
+    #         MyHandValue = MyHandValue + 10
+    # if DealerHasAce:
+    #     if DealerHandValue+10 <= 21:
+    #         DealerHandValue = DealerHandValue + 10
+    # if MyHandValue > 21:
+    #     return 0
+    # if DealerHandValue > 21:
+    #     return 2
+    # if DealerHandValue > MyHandValue:
+    #     return 0
+    # if MyHandValue > DealerHandValue:
+    #     return 2
+    # if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11) and MyHandValue==21:
+    #     return 0
+    # else:
+    #     return 1
     if acefresh  and (MyHandValue==11):
         if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11):
-            return 1
+            return 0
         else:
-            return 2.5
+            return 1.5
     if WeHaveAce:
         if MyHandValue+10 <= 21:
             MyHandValue = MyHandValue + 10
@@ -86,17 +109,19 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
         if DealerHandValue+10 <= 21:
             DealerHandValue = DealerHandValue + 10
     if MyHandValue > 21:
-        return 0
+        return -1
     if DealerHandValue > 21:
-        return 2
-    if DealerHandValue > MyHandValue:
-        return 0
-    if MyHandValue > DealerHandValue:
-        return 2
-    if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11) and MyHandValue==21:
-        return 0
-    else:
         return 1
+    if DealerHandValue > MyHandValue:
+        return -1
+    if MyHandValue > DealerHandValue:
+        return 1
+    if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11) and MyHandValue==21:
+        return -1
+    else:
+        return 0
+
+
 
 def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1, acefresh = False): # both values count aces as 1
     # base case - dealer stands
@@ -467,7 +492,7 @@ if __name__ == '__main__':
             print(ValueActionDict[state]," ",end="")
         print("\n")
     print("\n\n")
-    for summ in range(2,11):
+    for summ in range(2,10):
         for opp in range(1,11):
             state = GameState("AceFresh", summ, opp)
             print(ValueActionDict[state]," ",end="")
