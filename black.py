@@ -94,7 +94,7 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
     else:
         return 1
 
-def GetStandValueHardStale(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1): # both values count aces as 1
+def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1): # both values count aces as 1
     # base case - dealer stands
     if DealerHasAce:
         if (DealerHandValue+10>=17):
@@ -104,12 +104,14 @@ def GetStandValueHardStale(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce
             return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards)
 
     #deal more (hit)
+    np = (1-p)/9.0
     TotalReward = 0
     NumberAdded = 11
-    for DealerCard in range(1,11): # no ace
-            TotalReward += GetStandValueHardStale(MyHandValue, WeHaveAce, DealerHandValue + DealerCard, DealerHasAce, NumDealerCards = NumDealerCards + 1)
+    for DealerCard in range(1,10): # no ace
+        TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + DealerCard, DealerHasAce, NumDealerCards = NumDealerCards + 1)
+    TotalReward += p * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 10, DealerHasAce, NumDealerCards = NumDealerCards + 1)
     # Dealer Ace
-    TotalReward += GetStandValueHardStale(MyHandValue, WeHaveAce, DealerHandValue + 1, True, NumDealerCards = NumDealerCards + 1)
+    TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 1, True, NumDealerCards = NumDealerCards + 1)
     return (TotalReward/NumberAdded)
 
 def GetStandValue(state, p):
@@ -117,14 +119,14 @@ def GetStandValue(state, p):
     # First convert the state to the form where only the total, ace presence and freshness matters
     if state.HandType == "HardStaleAce":
         if state.OppCard == 11:
-            return GetStandValueHardStale(state.Value, True, state.OppCard, True,)
+            return GetStandValueHardStale(p, state.Value, True, state.OppCard, True,)
         else:
-            return GetStandValueHardStale(state.Value, True, state.OppCard, False)
+            return GetStandValueHardStale(p, state.Value, True, state.OppCard, False)
     else:
         if state.OppCard == 11:
-            return GetStandValueHardStale(state.Value, False, state.OppCard, True)
+            return GetStandValueHardStale(p, state.Value, False, state.OppCard, True)
         else:
-            return GetStandValueHardStale(state.Value, False, state.OppCard, False)
+            return GetStandValueHardStale(p, state.Value, False, state.OppCard, False)
 
 def ReferenceValueDict(ValueDict, state):
     if state.Value > 21:
@@ -175,7 +177,7 @@ def PerformValueIterationHardFresh(ValueDict, state, p):
 
     # for action Stand
     t1 = time.time()
-    StandValue = GetStandValue(state)
+    StandValue = GetStandValue(state, p)
     t2 = time.time()
     print("Hit time: ", t2-t1)
     
@@ -185,13 +187,13 @@ def PerformValueIterationHardFresh(ValueDict, state, p):
     DoubleValue = 0
     for card in cards:
         NewState = GameState("HardStale", state.Value + card, state.OppCard)
-        DoubleValue += 2 * GetStandValue(NewState) * np
+        DoubleValue += 2 * GetStandValue(NewState, p) * np
     # to handle face cards
     NewState = GameState("HardStale", state.Value + 10, state.OppCard)
-    DoubleValue += 2 * GetStandValue(NewState) * p
+    DoubleValue += 2 * GetStandValue(NewState, p) * p
     # to handle ace
     NewState = GameState("HardStaleAce", state.Value + 1, state.OppCard)
-    DoubleValue += 2 * GetStandValue(NewState) * np
+    DoubleValue += 2 * GetStandValue(NewState, p) * np
     t2 = time.time()
     print("Hit time: ", t2-t1)
     
@@ -219,7 +221,7 @@ def PerformValueIterationHardStale(ValueDict, state, p):
 
 
     # for action Stand
-    StandValue = GetStandValue(state)
+    StandValue = GetStandValue(state, p)
     
     ValueDict[state] = max(HitValue, StandValue)
 
@@ -247,20 +249,20 @@ def PerformValueIterationPair(ValueDict, state, p):
         
         
         # for action Stand
-        StandValue = GetStandValue(state)
+        StandValue = GetStandValue(state, p)
 
 
         # for action Double
         DoubleValue = 0
         for card in cards:
             NewState = GameState("HardStale", 2 * state.Value + card, state.OppCard)
-            DoubleValue += 2 * GetStandValue(NewState) * np
+            DoubleValue += 2 * GetStandValue(NewState, p) * np
         # to handle face cards
         NewState = GameState("HardStale", 2 * state.Value + 10, state.OppCard)
-        DoubleValue += 2 * GetStandValue(NewState) * p
+        DoubleValue += 2 * GetStandValue(NewState, p) * p
         # to handle ace
         NewState = GameState("HardStaleAce", 2 * state.Value + 1, state.OppCard)
-        DoubleValue += 2 * GetStandValue(NewState) * np
+        DoubleValue += 2 * GetStandValue(NewState, p) * np
         
         
         SplitValue = 0
@@ -296,34 +298,34 @@ def PerformValueIterationPair(ValueDict, state, p):
         
         
         # for action Stand
-        StandValue = GetStandValue(state)
+        StandValue = GetStandValue(state, p)
 
 
         # for action Double
         DoubleValue = 0
         for card in cards:
             NewState = GameState("HardStaleAce", 2 * state.Value + card, state.OppCard)
-            DoubleValue += 2 * GetStandValue(NewState) * np
+            DoubleValue += 2 * GetStandValue(NewState, p) * np
         # to handle face cards
         NewState = GameState("HardStaleAce", 2 * state.Value + 10, state.OppCard)
-        DoubleValue += 2 * GetStandValue(NewState) * p
+        DoubleValue += 2 * GetStandValue(NewState, p) * p
         # to handle ace
         NewState = GameState("HardStaleAce", 2 * state.Value + 1, state.OppCard)
-        DoubleValue += 2 * GetStandValue(NewState) * np
+        DoubleValue += 2 * GetStandValue(NewState, p) * np
         
         
         # for action split
         SplitValue = 0
         for card in cards:
             NewState = GameState("FreshAce", card, state.OppCard)
-            SplitValue += 2 * GetStandValue(NewState) * np
+            SplitValue += 2 * GetStandValue(NewState, p) * np
         
         # to handle face cards
         NewState = GameState("FreshAce", 10, state.OppCard)
-        SplitValue += 2 * GetStandValue(NewState) * p
+        SplitValue += 2 * GetStandValue(NewState, p) * p
         # to handle ace
         NewState = GameState("HardStaleAce", 2 * state.Value, state.OppCard)
-        SplitValue += 2 * GetStandValue(NewState) * np
+        SplitValue += 2 * GetStandValue(NewState, p) * np
 
         
         ValueDict[state] = max(HitValue, StandValue, DoubleValue, SplitValue)
@@ -349,20 +351,20 @@ def PerformValueIterationAceFresh(ValueDict, state, p):
 
 
     # for action Stand
-    StandValue = GetStandValue(state)
+    StandValue = GetStandValue(state, p)
     
 
     # for action Double
     DoubleValue = 0
     for card in cards:
         NewState = GameState("HardStaleAce", 1 + state.Value + card, state.OppCard)
-        DoubleValue += 2 * GetStandValue(NewState) * np
+        DoubleValue += 2 * GetStandValue(NewState, p) * np
     # to handle face cards
     NewState = GameState("HardStaleAce", 1 + state.Value + 10, state.OppCard)
-    DoubleValue += 2 * GetStandValue(NewState) * p
+    DoubleValue += 2 * GetStandValue(NewState, p) * p
     # to handle ace
     NewState = GameState("HardStaleAce", 1 + state.Value + 1, state.OppCard)
-    DoubleValue += 2 * GetStandValue(NewState) * np
+    DoubleValue += 2 * GetStandValue(NewState, p) * np
 
     
     ValueDict[state] = max(HitValue, StandValue, DoubleValue)
@@ -388,7 +390,7 @@ def PerformValueIterationHardStaleAce(ValueDict, state, p):
 
 
     # for action Stand
-    StandValue = GetStandValue(state)
+    StandValue = GetStandValue(state, p)
 
     ValueDict[state] = max(HitValue, StandValue)
 
