@@ -67,10 +67,10 @@ def PerformValueIteration( ValueActionDict, ValueDict, p):
             PerformValueIterationHardStaleAce(ValueActionDict, ValueDict, state, p)
 
 def IsPolicySame( OldValueDict, NewValueDict):
-    epsilon = 1e-10
+    epsilon = 1e-11
     for state in OldValueDict:
         if abs(OldValueDict[state] - NewValueDict[state]) > epsilon:
-            # print("Returning false")
+            #print("Returning false")
             return False
     return True
 
@@ -183,21 +183,6 @@ def ReferenceValueDict(ValueDict, state):
         return 0
     else:
         return ValueDict[state]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def PerformValueIterationHardFresh(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
