@@ -41,10 +41,10 @@ def InitializeValueDict():
             StateSet.append(GameState("HardFresh", summ, opp))
             StateSet.append(GameState("HardStaleAce", summ, opp))
             StateSet.append(GameState("HardStale", summ, opp))
-    for summ in range(2,10):
+    for summ in range(2,11):
         for opp in range(2,12):
             StateSet.append(GameState("AceFresh", summ, opp))
-    for summ in range(2,12):
+    for summ in range(2,11):
         for opp in range(2,12):
             StateSet.append(GameState("Pair", summ, opp))
     for state in StateSet:
@@ -73,7 +73,12 @@ def IsPolicySame( OldValueDict, NewValueDict):
             return False
     return True
 
-def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards):
+def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh):
+    if acefresh  and (MyHandValue==11):
+        if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11):
+            return 1
+        else:
+            return 2.5
     if WeHaveAce:
         if MyHandValue+10 <= 21:
             MyHandValue = MyHandValue + 10
@@ -93,34 +98,40 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
     else:
         return 1
 
-def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1): # both values count aces as 1
+def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1, acefresh = False): # both values count aces as 1
     # base case - dealer stands
     if DealerHasAce:
         if (DealerHandValue+10>=17):
-            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards)
+            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
     else:
         if (DealerHandValue>=17):
-            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards)
+            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
 
     #deal more (hit)
     np = (1-p)/9.0
     TotalReward = 0
     NumberAdded = 11
     for DealerCard in range(1,10): # no ace
-        TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + DealerCard, DealerHasAce, NumDealerCards = NumDealerCards + 1)
-    TotalReward += p * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 10, DealerHasAce, NumDealerCards = NumDealerCards + 1)
+        TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + DealerCard, DealerHasAce, NumDealerCards = NumDealerCards + 1, acefresh = acefresh)
+    TotalReward += p * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 10, DealerHasAce, NumDealerCards = NumDealerCards + 1, acefresh = acefresh)
     # Dealer Ace
-    TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 1, True, NumDealerCards = NumDealerCards + 1)
+    TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 1, True, NumDealerCards = NumDealerCards + 1, acefresh = acefresh)
     return (TotalReward/NumberAdded)
 
 def GetStandValue(state, p):
     # handle ace
     # First convert the state to the form where only the total, ace presence and freshness matters
+    
     if state.HandType == "HardStaleAce":
         if state.OppCard == 11:
-            return GetStandValueHardStale(p, state.Value, True, state.OppCard, True,)
+            return GetStandValueHardStale(p, state.Value, True, state.OppCard, True)
         else:
             return GetStandValueHardStale(p, state.Value, True, state.OppCard, False)
+    elif state.HandType == "AceFresh":
+        if state.OppCard == 11:
+            return GetStandValueHardStale(p, state.Value+1, True, state.OppCard, True, acefresh = True)
+        else:
+            return GetStandValueHardStale(p, state.Value+1, True, state.OppCard, False, acefresh = True)
     else:
         if state.OppCard == 11:
             return GetStandValueHardStale(p, state.Value, False, state.OppCard, True)
@@ -353,8 +364,7 @@ def PerformValueIterationAceFresh(ValueDict, state, p):
 
 
     # for action Stand
-    state_temp = GameState("HardStaleAce", 1 + state.Value, state.OppCard)
-    StandValue = GetStandValue(state_temp, p)
+    StandValue = GetStandValue(state, p)
     
 
     # for action Double
