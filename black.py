@@ -75,29 +75,7 @@ def IsPolicySame( OldValueDict, NewValueDict):
     return True
 
 def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh):
-    # if acefresh  and (MyHandValue==11):
-    #     if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11):
-    #         return 1
-    #     else:
-    #         return 2.5
-    # if WeHaveAce:
-    #     if MyHandValue+10 <= 21:
-    #         MyHandValue = MyHandValue + 10
-    # if DealerHasAce:
-    #     if DealerHandValue+10 <= 21:
-    #         DealerHandValue = DealerHandValue + 10
-    # if MyHandValue > 21:
-    #     return 0
-    # if DealerHandValue > 21:
-    #     return 2
-    # if DealerHandValue > MyHandValue:
-    #     return 0
-    # if MyHandValue > DealerHandValue:
-    #     return 2
-    # if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11) and MyHandValue==21:
-    #     return 0
-    # else:
-    #     return 1
+    
     if acefresh and (MyHandValue==11):
         if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11):
             return 0
@@ -117,11 +95,13 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
         return -1
     if MyHandValue > DealerHandValue:
         return 1
-    if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11) and MyHandValue==21:
+    if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==21):
         return -1
-    if MyHandValue == DealerHandValue:
+    if DealerHandValue == MyHandValue:
         return 0
-    print("Damn")
+    else:
+        print("Damn")
+        return 0
 
 
 
@@ -129,12 +109,12 @@ def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHas
     # base case - dealer stands
 
     if DealerHasAce:
-        if (DealerHandValue+10>=17 and DealerHandValue+10<=21):
+        if (DealerHandValue + 10 >= 17 and DealerHandValue + 10 <= 21):
             return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
         elif DealerHandValue >= 17:
             return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
     else:
-        if (DealerHandValue>=17):
+        if (DealerHandValue >= 17):
             return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
 
     if (MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh) in MemoizationDict:
@@ -155,7 +135,7 @@ def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHas
 def GetStandValue(state, p):
     # handle ace
     # First convert the state to the form where only the total, ace presence and freshness matters
-    
+
     if state.HandType == "HardStaleAce":
         if state.OppCard == 1:
             ret = GetStandValueHardStale(p, state.Value, True, state.OppCard, True)
@@ -307,7 +287,6 @@ def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
             else:
                 NewState = GameState("Pair", state.Value, state.OppCard)
                 SplitValue += 2 * ReferenceValueDict(ValueDict, NewState) * np
-        
         # to handle face cards
         NewState = GameState("HardFresh", state.Value + 10, state.OppCard)
         SplitValue += 2 * ReferenceValueDict(ValueDict, NewState) * p
@@ -360,10 +339,10 @@ def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
         # for action split
         SplitValue = 0
         for card in cards:
-            NewState = GameState("HardStaleAce", 1 + card, state.OppCard)
+            NewState = GameState("HardStaleAce", state.Value + card, state.OppCard)
             SplitValue += 2 * GetStandValue(NewState, p) * np
         # to handle face cards
-        NewState = GameState("HardStaleAce", 1 + 10, state.OppCard)
+        NewState = GameState("HardStaleAce", state.Value + 10, state.OppCard)
         SplitValue += 2 * GetStandValue(NewState, p) * p
         # to handle ace
         NewState = GameState("HardStaleAce", 2 * state.Value, state.OppCard)
