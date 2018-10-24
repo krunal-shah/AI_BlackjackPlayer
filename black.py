@@ -32,14 +32,23 @@ class GameState:
 
 # maps states to float values
 def InitializeValueDict():
-    # TODO: Please finish this and the function GetStandValue
     ValueDict = {}
-    StateSet = set()
+    StateSet = []
     for summ in range(5,20):
-        StateSet.insert()
-    state = GameState(4,-1,2,True,False)
-    ValueDict[state] = 1
+        for opp in range(2,12):
+            StateSet.append(GameState("HardFresh", summ, opp))
+            StateSet.append(GameState("HardStaleAce", summ, opp))
+            StateSet.append(GameState("HardStale", summ, opp))
+    for summ in range(2,10):
+        for opp in range(2,12):
+            StateSet.append(GameState("AceFresh", summ, opp))
+    for summ in range(2,12):
+        for opp in range(2,12):
+            StateSet.append(GameState("Pair", summ, opp))
+    for state in StateSet:
+        ValueDict[state] = 0
     return ValueDict
+
 
 def PerformValueIteration( ValueDict, p):
     for state in ValueDict.keys():
@@ -55,7 +64,7 @@ def PerformValueIteration( ValueDict, p):
             PerformValueIterationHardStaleAce(ValueDict, state, p)
 
 def IsPolicySame( OldValueDict, NewValueDict):
-    epsilon = 0.0001
+    epsilon = 0.00001
     for state in OldValueDict:
         if (OldValueDict[state] - NewValueDict[state]) > epsilon:
             return False
