@@ -173,27 +173,12 @@ def GetStandValue(state, p):
 
 def ReferenceValueDict(ValueDict, state):
     if state.Value > 21:
-        return 0
+        return -1
     elif state not in ValueDict:
         print("Logical Error: State (Type: %s, Value: %d, OppCard: %d)not in dict" % (state.HandType, state.Value, state.OppCard))
         return 0
     else:
         return ValueDict[state]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def PerformValueIterationHardFresh(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
@@ -234,11 +219,11 @@ def PerformValueIterationHardFresh(ValueActionDict, ValueDict, state, p):
     
     ValueDict[state] = max(HitValue, StandValue, DoubleValue)
     if ValueDict[state] == HitValue:
-        ValueActionDict[state] = "Hit"
+        ValueActionDict[state] = "H"
     elif ValueDict[state] == StandValue:
-        ValueActionDict[state] = "Stand"
+        ValueActionDict[state] = "S"
     else:
-        ValueActionDict[state] = "Double"
+        ValueActionDict[state] = "D"
 
 def PerformValueIterationHardStale(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
@@ -266,9 +251,9 @@ def PerformValueIterationHardStale(ValueActionDict, ValueDict, state, p):
     
     ValueDict[state] = max(HitValue, StandValue)
     if ValueDict[state] == HitValue:
-        ValueActionDict[state] = "Hit"
+        ValueActionDict[state] = "H"
     elif ValueDict[state] == StandValue:
-        ValueActionDict[state] = "Stand"
+        ValueActionDict[state] = "S"
 
 def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
     # TODO: Handle Ace pair
@@ -329,13 +314,13 @@ def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
 
         ValueDict[state] = max(HitValue, StandValue, DoubleValue, SplitValue)
         if ValueDict[state] == HitValue:
-            ValueActionDict[state] = "Hit"
+            ValueActionDict[state] = "H"
         elif ValueDict[state] == StandValue:
-            ValueActionDict[state] = "Stand"
+            ValueActionDict[state] = "S"
         elif ValueDict[state] == DoubleValue:
-            ValueActionDict[state] = "Double"
+            ValueActionDict[state] = "D"
         else:
-            ValueActionDict[state] = "Split"
+            ValueActionDict[state] = "P"
 
     else:
         
@@ -386,13 +371,13 @@ def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
         
         ValueDict[state] = max(HitValue, StandValue, DoubleValue, SplitValue)
         if ValueDict[state] == HitValue:
-            ValueActionDict[state] = "Hit"
+            ValueActionDict[state] = "H"
         elif ValueDict[state] == StandValue:
-            ValueActionDict[state] = "Stand"
+            ValueActionDict[state] = "S"
         elif ValueDict[state] == DoubleValue:
-            ValueActionDict[state] = "Double"
+            ValueActionDict[state] = "D"
         else:
-            ValueActionDict[state] = "Split"
+            ValueActionDict[state] = "P"
 
 def PerformValueIterationAceFresh(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
@@ -432,11 +417,11 @@ def PerformValueIterationAceFresh(ValueActionDict, ValueDict, state, p):
 
     ValueDict[state] = max(HitValue, StandValue, DoubleValue)
     if ValueDict[state] == HitValue:
-        ValueActionDict[state] = "Hit"
+        ValueActionDict[state] = "H"
     elif ValueDict[state] == StandValue:
-        ValueActionDict[state] = "Stand"
+        ValueActionDict[state] = "S"
     elif ValueDict[state] == DoubleValue:
-        ValueActionDict[state] = "Double"
+        ValueActionDict[state] = "D"
 
 def PerformValueIterationHardStaleAce(ValueActionDict, ValueDict, state, p):
     # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
@@ -463,20 +448,20 @@ def PerformValueIterationHardStaleAce(ValueActionDict, ValueDict, state, p):
 
     ValueDict[state] = max(HitValue, StandValue)
     if ValueDict[state] == HitValue:
-        ValueActionDict[state] = "Hit"
+        ValueActionDict[state] = "H"
     elif ValueDict[state] == StandValue:
-        ValueActionDict[state] = "Stand"
+        ValueActionDict[state] = "S"
 
 if __name__ == '__main__':
     MemoizationDict = {}
     ValueDict = InitializeValueDict()
     ValueActionDict = InitializeValueDict()
-    p = 4/13
+    p = 0.307
     iteration = 0
     while True:
         NewValueDict = ValueDict.copy()
         NewValueActionDict = ValueActionDict.copy()
-        print("Iteration ", iteration)
+        # print("Iteration ", iteration)
         iteration += 1
         PerformValueIteration(ValueActionDict, NewValueDict, p)
         # print(NewValueDict.values())
@@ -486,24 +471,33 @@ if __name__ == '__main__':
         ValueDict = NewValueDict
         ValueActionDict = NewValueActionDict
     
-    for summ in range(5,19):
-        for opp in range(1,11):
+    for summ in range(5,20):
+        print(summ, " ", end="")
+        for opp in range(2,11):
             state = GameState("HardFresh", summ, opp)
             print(ValueActionDict[state]," ",end="")
-        print("\n")
-    print("\n\n")
+        state = GameState("HardFresh", summ, 1)
+        print(ValueActionDict[state])
     for summ in range(2,10):
-        for opp in range(1,11):
+        print("A%d " %(summ), end="")
+        for opp in range(2,11):
             state = GameState("AceFresh", summ, opp)
             print(ValueActionDict[state]," ",end="")
-        print("\n")
-    print("\n\n")
+        state = GameState("AceFresh", summ, 1)
+        print(ValueActionDict[state])
     for summ in range(2,11):
-        for opp in range(1,11):
+        print("%d%d " %(summ,summ), end="")
+        for opp in range(2,11):
             state = GameState("Pair", summ, opp)
             print(ValueActionDict[state]," ",end="")
-        print("\n")
-    print("\n\n")
+        state = GameState("Pair", summ, 1)
+        print(ValueActionDict[state])
+    print("AA " , end="")
+    for opp in range(2,11):
+        state = GameState("Pair", summ, opp)
+        print(ValueActionDict[state]," ",end="")
+    state = GameState("Pair", summ, 1)
+    print(ValueActionDict[state])
     # for state in StateSet:
     #     ValueDict[state] = 0
 
