@@ -1,5 +1,6 @@
 import pdb
 import time
+import sys
 
 class GameState:
     """
@@ -44,7 +45,7 @@ def InitializeValueDict():
     for summ in range(2,11):
         for opp in range(1,11):
             StateSet.append(GameState("AceFresh", summ, opp))
-    for summ in range(2,11):
+    for summ in range(1,11):
         for opp in range(1,11):
             StateSet.append(GameState("Pair", summ, opp))
     for state in StateSet:
@@ -97,7 +98,7 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
     #     return 0
     # else:
     #     return 1
-    if acefresh  and (MyHandValue==11):
+    if acefresh and (MyHandValue==11):
         if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11):
             return 0
         else:
@@ -118,8 +119,9 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
         return 1
     if (NumDealerCards==2) and DealerHasAce and (DealerHandValue==11) and MyHandValue==21:
         return -1
-    else:
+    if MyHandValue == DealerHandValue:
         return 0
+    print("Damn")
 
 
 
@@ -127,7 +129,9 @@ def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHas
     # base case - dealer stands
 
     if DealerHasAce:
-        if (DealerHandValue+10>=17):
+        if (DealerHandValue+10>=17 and DealerHandValue+10<=21):
+            return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
+        elif DealerHandValue >= 17:
             return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards, acefresh)
     else:
         if (DealerHandValue>=17):
@@ -260,7 +264,6 @@ def PerformValueIterationHardStale(ValueActionDict, ValueDict, state, p):
     HitValue += ReferenceValueDict(ValueDict, NewState) * np
 
 
-
     # for action Stand
     StandValue = GetStandValue(state, p)
     
@@ -338,7 +341,6 @@ def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
             ValueActionDict[state] = "P"
 
     else:
-        
         # for action Hit
         HitValue = 0
         for card in cards:
@@ -373,11 +375,10 @@ def PerformValueIterationPair(ValueActionDict, ValueDict, state, p):
         # for action split
         SplitValue = 0
         for card in cards:
-            NewState = GameState("HardStaleAce", card, state.OppCard)
+            NewState = GameState("HardStaleAce", 1 + card, state.OppCard)
             SplitValue += 2 * GetStandValue(NewState, p) * np
-        
         # to handle face cards
-        NewState = GameState("HardStaleAce", 10, state.OppCard)
+        NewState = GameState("HardStaleAce", 1 + 10, state.OppCard)
         SplitValue += 2 * GetStandValue(NewState, p) * p
         # to handle ace
         NewState = GameState("HardStaleAce", 2 * state.Value, state.OppCard)
@@ -471,7 +472,7 @@ if __name__ == '__main__':
     MemoizationDict = {}
     ValueDict = InitializeValueDict()
     ValueActionDict = InitializeValueDict()
-    p = 0.307
+    p = float(sys.argv[1])
     iteration = 0
     while True:
         NewValueDict = ValueDict.copy()
@@ -487,32 +488,33 @@ if __name__ == '__main__':
         ValueActionDict = NewValueActionDict
     
     for summ in range(5,20):
-        print(summ, " ", end="")
+        print(summ, "\t", end="",sep="")
         for opp in range(2,11):
             state = GameState("HardFresh", summ, opp)
-            print(ValueActionDict[state]," ",end="")
+            print(ValueActionDict[state]," ",end='',sep="")
         state = GameState("HardFresh", summ, 1)
         print(ValueActionDict[state])
     for summ in range(2,10):
-        print("A%d " %(summ), end="")
+        print("A%d\t" %(summ), end='')
         for opp in range(2,11):
             state = GameState("AceFresh", summ, opp)
-            print(ValueActionDict[state]," ",end="")
+            print(ValueActionDict[state]," ",end='',sep="")
         state = GameState("AceFresh", summ, 1)
         print(ValueActionDict[state])
     for summ in range(2,11):
-        print("%d%d " %(summ,summ), end="")
+        print("%d%d\t" %(summ,summ), end='')
         for opp in range(2,11):
             state = GameState("Pair", summ, opp)
-            print(ValueActionDict[state]," ",end="")
+            print(ValueActionDict[state]," ",end='',sep="")
         state = GameState("Pair", summ, 1)
         print(ValueActionDict[state])
-    print("AA " , end="")
+    print("AA\t" , end='')
     for opp in range(2,11):
-        state = GameState("Pair", summ, opp)
-        print(ValueActionDict[state]," ",end="")
-    state = GameState("Pair", summ, 1)
-    print(ValueActionDict[state])
+        state = GameState("Pair", 1, opp)
+        print(ValueActionDict[state]," ",end='',sep="")
+    state = GameState("Pair", 1, 1)
+    print(ValueActionDict[state],end="")
+
     # for state in StateSet:
     #     ValueDict[state] = 0
 
