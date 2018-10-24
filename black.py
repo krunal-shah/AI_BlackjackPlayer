@@ -1,4 +1,3 @@
-from Util import *
 import pdb
 import time
 
@@ -37,7 +36,7 @@ class GameState:
 def InitializeValueDict():
     ValueDict = {}
     StateSet = []
-    for summ in range(5,22):
+    for summ in range(2,22):
         for opp in range(2,12):
             StateSet.append(GameState("HardFresh", summ, opp))
             StateSet.append(GameState("HardStaleAce", summ, opp))
@@ -397,8 +396,6 @@ def PerformValueIterationHardStaleAce(ValueDict, state, p):
     StandValue = GetStandValue(state, p)
 
     ValueDict[state] = max(HitValue, StandValue)
-
-
 if __name__ == '__main__':
     ValueDict = InitializeValueDict()
     p = 4/13
