@@ -93,8 +93,12 @@ def GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDea
     else:
         return 1
 
+
 def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards = 1): # both values count aces as 1
     # base case - dealer stands
+    if (DealerHandValue, DealerHasAce) in MemoizationDict:
+        return MemoizationDict[(DealerHandValue, DealerHasAce)]
+
     if DealerHasAce:
         if (DealerHandValue+10>=17):
             return GetFinalPayoff(MyHandValue, WeHaveAce, DealerHandValue, DealerHasAce, NumDealerCards)
@@ -105,13 +109,14 @@ def GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue, DealerHas
     #deal more (hit)
     np = (1-p)/9.0
     TotalReward = 0
-    NumberAdded = 11
     for DealerCard in range(1,10): # no ace
         TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + DealerCard, DealerHasAce, NumDealerCards = NumDealerCards + 1)
     TotalReward += p * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 10, DealerHasAce, NumDealerCards = NumDealerCards + 1)
     # Dealer Ace
     TotalReward += np * GetStandValueHardStale(p, MyHandValue, WeHaveAce, DealerHandValue + 1, True, NumDealerCards = NumDealerCards + 1)
-    return (TotalReward/NumberAdded)
+
+    MemoizationDict[(DealerHandValue, DealerHasAce)] = TotalReward
+    return TotalReward
 
 def GetStandValue(state, p):
     # handle ace
@@ -353,8 +358,7 @@ def PerformValueIterationAceFresh(ValueDict, state, p):
 
 
     # for action Stand
-    state_temp = GameState("HardStaleAce", 1 + state.Value, state.OppCard)
-    StandValue = GetStandValue(state_temp, p)
+    StandValue = GetStandValue(state, p)
     
 
     # for action Double
@@ -397,6 +401,7 @@ def PerformValueIterationHardStaleAce(ValueDict, state, p):
 
     ValueDict[state] = max(HitValue, StandValue)
 if __name__ == '__main__':
+    MemoizationDict = {}
     ValueDict = InitializeValueDict()
     p = 4/13
     while True:
