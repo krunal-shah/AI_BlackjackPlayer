@@ -29,6 +29,9 @@ class GameState:
                                     other.Value,
                                     other.HandType)
 
+    def printme(self):
+        print("State (Type: %s, Value: %d, OppCard: %d)" % (self.HandType, self.Value, self.OppCard))
+
 
 # maps states to float values
 def InitializeValueDict():
@@ -137,6 +140,7 @@ def PerformValueIterationHardFresh(ValueDict, state, p):
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
     print("HardFresh")
+    state.printme()
 
     # for action Hit    
     HitValue = 0
@@ -177,6 +181,7 @@ def PerformValueIterationHardStale(ValueDict, state, p):
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
     print("HardStale")
+    state.printme()
 
     # for action Hit    
     HitValue = 0
@@ -203,6 +208,7 @@ def PerformValueIterationPair(ValueDict, state, p):
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
     print("Pair")
+    state.printme()
 
     if(state.Value != 1):
         
@@ -306,6 +312,7 @@ def PerformValueIterationAceFresh(ValueDict, state, p):
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
     print("AceFresh")
+    state.printme()
 
     # for action Hit    
     HitValue = 0
@@ -344,6 +351,7 @@ def PerformValueIterationHardStaleAce(ValueDict, state, p):
     np = (1-p)/9.0
     cards = [2,3,4,5,6,7,8,9]
     print("HardStaleAce")
+    state.printme()
 
     # for action Hit    
     HitValue = 0
