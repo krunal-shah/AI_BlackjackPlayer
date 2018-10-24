@@ -9,39 +9,34 @@ class GameState:
 
     """
 
-    def __init__(self, FirstCard, SecondCard, OppCard, FreshHand, AcePresent):
+    def __init__(self, HandType, Value, OppCard):
         
         # if you add other members add them to the hash and eq as well
+        self.HandType = HandType
+        # [ "HardFresh", "HardStaleAce", "HardStale", "AceFresh", "Pair" ] 
         self.OppCard = OppCard
-        self.FirstCard = FirstCard
-        self.SecondCard = SecondCard
-        self.FreshHand = FreshHand
-        self.AcePresent = AcePresent
-
+        self.Value = Value
 
     def __hash__(self):
-            return hash((self.OppCard,
-                        self.FirstCard,
-                        self.SecondCard,
-                        self.FreshHand,
-                        self.AcePresent))
+        return hash((self.OppCard,
+                        self.Value,
+                        self.HandType))
 
     def __eq__(self, other):
         return (self.OppCard,
-                self.FirstCard,
-                self.SecondCard,
-                self.FreshHand,
-                self.AcePresent) == (other.OppCard,
-                                    other.FirstCard,
-                                    other.SecondCard,
-                                    other.FreshHand,
-                                    other.AcePresent)
+                self.Value,
+                self.HandType) == (other.OppCard,
+                                    other.Value,
+                                    other.HandType)
 
 
 # maps states to float values
 def InitializeValueDict():
     # TODO: Please finish this and the function GetStandValue
     ValueDict = {}
+    StateSet = set()
+    for summ in range(5,20):
+        StateSet.insert(
     state = GameState(4,-1,2,True,False)
     ValueDict[state] = 1
     return ValueDict
