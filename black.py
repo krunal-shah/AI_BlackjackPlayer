@@ -1,4 +1,3 @@
-from Util import *
 import pdb
 import time
 
@@ -37,7 +36,7 @@ class GameState:
 def InitializeValueDict():
     ValueDict = {}
     StateSet = []
-    for summ in range(5,22):
+    for summ in range(2,22):
         for opp in range(2,12):
             StateSet.append(GameState("HardFresh", summ, opp))
             StateSet.append(GameState("HardStaleAce", summ, opp))
@@ -267,7 +266,7 @@ def PerformValueIterationPair(ValueDict, state, p):
         
         SplitValue = 0
         for card in cards:
-            if card != self.Value:
+            if card != state.Value:
                 NewState = GameState("HardFresh", state.Value + card, state.OppCard)
                 SplitValue += 2 * ReferenceValueDict(ValueDict, NewState) * np
             else:
@@ -278,7 +277,7 @@ def PerformValueIterationPair(ValueDict, state, p):
         NewState = GameState("HardFresh", state.Value + 10, state.OppCard)
         SplitValue += 2 * ReferenceValueDict(ValueDict, NewState) * p
         # to handle ace
-        NewState = GameState("FreshAce", state.Value, state.OppCard)
+        NewState = GameState("AceFresh", state.Value, state.OppCard)
         SplitValue += 2 * ReferenceValueDict(ValueDict, NewState) * np
 
         ValueDict[state] = max(HitValue, StandValue, DoubleValue, SplitValue)
@@ -317,11 +316,11 @@ def PerformValueIterationPair(ValueDict, state, p):
         # for action split
         SplitValue = 0
         for card in cards:
-            NewState = GameState("FreshAce", card, state.OppCard)
+            NewState = GameState("AceFresh", card, state.OppCard)
             SplitValue += 2 * GetStandValue(NewState, p) * np
         
         # to handle face cards
-        NewState = GameState("FreshAce", 10, state.OppCard)
+        NewState = GameState("AceFresh", 10, state.OppCard)
         SplitValue += 2 * GetStandValue(NewState, p) * p
         # to handle ace
         NewState = GameState("HardStaleAce", 2 * state.Value, state.OppCard)
@@ -393,8 +392,6 @@ def PerformValueIterationHardStaleAce(ValueDict, state, p):
     StandValue = GetStandValue(state, p)
 
     ValueDict[state] = max(HitValue, StandValue)
-
-
 if __name__ == '__main__':
     ValueDict = InitializeValueDict()
     p = 4/13
