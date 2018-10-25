@@ -1,1 +1,1 @@
-python black.py $1 > Policy.txt
+python3 black.py $1 > Policy.txt
